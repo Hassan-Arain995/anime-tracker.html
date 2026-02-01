@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Anime Weekly Tracker</title>
+  <style>
+    :root {
+      --bg: #f4f4f4;
+      --card: #ffffff;
+      --text: #111;
+      --accent: #4f46e5;
+    }
+    body.dark {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #e5e7eb;
+      --accent: #22d3ee;
+    }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card);
+      position: sticky;
+      top: 0;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+    }
+    .container { padding: 16px; }
+    .day {
+      margin-bottom: 20px;
+      background: var(--card);
+      padding: 12px;
+      border-radius: 10px;
+    }
+    .anime {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 0;
+    }
+    .controls button { margin: 0 4px; }
+    .add-box {
+      margin-top: 20px;
+      background: var(--card);
+      padding: 12px;
+      border-radius: 10px;
+    }
+    input, select {
+      padding: 6px;
+      margin: 4px 0;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Anime Weekly Tracker</strong>
+    <div>
+      <button onclick="toggleDark()">Dark</button>
+      <button onclick="backupData()">Backup</button>
+      <button onclick="restoreData()">Restore</button>
+    </div>
+  </header>  <div class="container" id="app"></div>  <div class="container add-box">
+    <h3>Add New Anime</h3>
+    <input id="animeName" placeholder="Anime name">
+    <select id="animeDay">
+      <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+      <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+    </select>
+    <button onclick="addAnime()">Add Anime</button>
+  </div><script>
+const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+let data = JSON.parse(localStorage.getItem("animeData")) || {
+  Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: []
+};
+
+function save() {
+  localStorage.setItem("animeData", JSON.stringify(data));
+}
+
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  days.forEach(day => {
+    const div = document.createElement("div");
+    div.className = "day";
+    div.innerHTML = `<h3>${day}</h3>`;
+    data[day].forEach((a,i) => {
+      const row = document.createElement("div");
+      row.className = "anime";
+      row.innerHTML = `
+        <span>${a.name} — EP ${a.ep}</span>
+        <div class="controls">
+          <button onclick="updateEp('${day}',${i},-1)">-</button>
+          <button onclick="updateEp('${day}',${i},1)">+</button>
+        </div>`;
+      div.appendChild(row);
+    });
+    app.appendChild(div);
+  });
+}
+
+function updateEp(day,index,val){
+  data[day][index].ep = Math.max(0, data[day][index].ep + val);
+  save(); render();
+}
+
+function addAnime(){
+  const name = animeName.value.trim();
+  const day = animeDay.value;
+  if(!name) return;
+  data[day].push({name, ep: 0});
+  animeName.value="";
+  save(); render();
+}
+
+function toggleDark(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("dark", document.body.classList.contains("dark"));
+}
+
+function backupData(){
+  const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "anime_backup.json";
+  a.click();
+}
+
+function restoreData(){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.onchange = e => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      data = JSON.parse(reader.result);
+      save(); render();
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+if(localStorage.getItem("dark") === "true") document.body.classList.add("dark");
+render();
+</script></body>
+</html>
