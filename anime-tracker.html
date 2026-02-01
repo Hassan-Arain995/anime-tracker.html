@@ -4,36 +4,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anime Weekly Tracker</title>
 <style>
-:root{--bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#64748b;--accent:#6366f1;--accent2:#22d3ee;--radius:16px}
-body.dark{--bg:#020617;--card:#0f172a;--text:#e5e7eb;--muted:#94a3b8;--accent:#22d3ee;--accent2:#818cf8}
+:root{
+ --bg:#0b1220;--card:#111827;--soft:#1f2937;--text:#e5e7eb;--muted:#9ca3af;
+ --accent:#22d3ee;--radius:14px
+}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
-header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--card);box-shadow:0 8px 20px rgba(0,0,0,.08)}
-button{border:none;border-radius:999px;padding:6px 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer}
-button.ghost{background:transparent;color:var(--text);border:1px solid var(--muted)}
-.container{max-width:1000px;margin:auto;padding:16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.day{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 10px 25px rgba(0,0,0,.07)}
-.day.today{outline:2px solid var(--accent)}
-.anime{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:8px;border-radius:12px;background:rgba(99,102,241,.07)}
-body.dark .anime{background:rgba(34,211,238,.12)}
-.controls button{padding:4px 10px;margin-left:4px}
-.add-box{margin:30px auto;background:var(--card);padding:16px;border-radius:var(--radius);max-width:520px;box-shadow:0 10px 25px rgba(0,0,0,.08)}
-input,select{width:100%;padding:10px;margin:6px 0 12px;border-radius:10px;border:1px solid var(--muted);background:transparent;color:var(--text)}
-#notifyPanel{position:fixed;right:16px;top:64px;width:260px;background:var(--card);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.15);display:none;padding:12px}
-footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+body{margin:0;font-family:system-ui;background:linear-gradient(180deg,#020617,#0b1220);color:var(--text)}
+header{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#020617;border-bottom:1px solid #1f2937}
+header .right button{margin-left:8px}
+button{border:none;border-radius:999px;padding:8px 14px;background:var(--accent);color:#020617;font-weight:600;cursor:pointer}
+button.icon{padding:8px 10px;background:#1f2937;color:#e5e7eb}
+.container{max-width:900px;margin:auto;padding:14px}
+.day{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.day.today{outline:1px solid var(--accent)}
+.day h3{margin:0 0 10px;font-size:15px;color:#e5e7eb}
+.anime{display:flex;justify-content:space-between;align-items:center;background:var(--soft);padding:10px 12px;border-radius:12px;margin:8px 0}
+.anime-name{font-size:14px}
+.controls{display:flex;gap:6px}
+.controls button{padding:6px 10px}
+.controls .del{background:#ef4444;color:#fff}
+.add-box{background:var(--card);border-radius:var(--radius);padding:14px;margin-top:20px}
+input,select{width:100%;padding:10px;margin:6px 0 10px;border-radius:10px;border:none;background:var(--soft);color:var(--text)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#020617;padding:10px 14px;border-radius:999px;display:none}
 </style>
 </head>
 <body>
 <header>
  <strong>📅 Anime Weekly Tracker</strong>
- <div>
-  <button class="ghost" onclick="toggleNotify()">🔔</button>
-  <button class="ghost" onclick="toggleDark()">🌙</button>
-  <button onclick="enableNotify()">Enable Alerts</button>
+ <div class="right">
+  <button class="icon" onclick="toggleNotifyPanel()">🔔</button>
+  <button onclick="requestNotify()">Enable Alerts</button>
  </div>
-</header><div id="notifyPanel"></div>
-<div class="container grid" id="app"></div><div class="add-box">
+</header><div class="container" id="app"></div><div class="container add-box">
  <h3>➕ Add New Anime</h3>
  <input id="animeName" placeholder="Anime name">
  <input id="animeTotal" type="number" placeholder="Total episodes (optional)">
@@ -42,39 +44,58 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
   <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
  </select>
  <button onclick="addAnime()">Add Anime</button>
-</div><footer>Offline • Auto-Save • Notifications</footer><script>
-const daysOrder=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const todayName=daysOrder[new Date().getDay()];
+</div><div id="toast"></div><script>
+const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const today=days[new Date().getDay()];
 let data=JSON.parse(localStorage.getItem("animeData"))||{Monday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[],Saturday:[],Sunday:[]};
-let logs=JSON.parse(localStorage.getItem("notifyLogs"))||[];
-function save(){localStorage.setItem("animeData",JSON.stringify(data));localStorage.setItem("notifyLogs",JSON.stringify(logs));}
+let notified=localStorage.getItem("notifiedDay");
+
+function save(){localStorage.setItem("animeData",JSON.stringify(data));}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
+
 function render(){
- const app=document.getElementById("app");app.innerHTML="";
+ const app=document.getElementById('app');app.innerHTML='';
  Object.keys(data).forEach(day=>{
-  const d=document.createElement("div");d.className="day"+(day===todayName?" today":"");
-  d.innerHTML=`<h3>${day}${day===todayName?" • Today":""}</h3>`;
+  const d=document.createElement('div');d.className='day'+(day===today?' today':'');
+  d.innerHTML=`<h3>${day}${day===today?' • Today':''}</h3>`;
   data[day].forEach((a,i)=>{
-   const r=document.createElement("div");r.className="anime";
-   r.innerHTML=`<span>${a.name} • EP ${a.ep}${a.total?` / ${a.total}`:""}</span>
-   <div class="controls">
+   const r=document.createElement('div');r.className='anime';
+   r.innerHTML=`<div class='anime-name'>${a.name} • EP ${a.ep}${a.total?` / ${a.total}`:''}</div>
+   <div class='controls'>
     <button onclick="updateEp('${day}',${i},-1)">−</button>
     <button onclick="updateEp('${day}',${i},1)">+</button>
-    <button onclick="removeAnime('${day}',${i})">✖</button>
+    <button class='del' onclick="removeAnime('${day}',${i})">✕</button>
    </div>`;
    d.appendChild(r);
-  });app.appendChild(d);
+  });
+  app.appendChild(d);
  });
- renderNotify();
 }
+
 function updateEp(day,i,v){data[day][i].ep=Math.max(0,data[day][i].ep+v);save();render();}
-function removeAnime(day,i){if(confirm("Remove this anime?")){data[day].splice(i,1);save();render();}}
-function addAnime(){const n=animeName.value.trim();if(!n)return;data[animeDay.value].push({name:n,ep:0,total:+animeTotal.value||null});animeName.value=animeTotal.value="";save();render();}
-function toggleDark(){document.body.classList.toggle("dark");localStorage.setItem("dark",document.body.classList.contains("dark"));}
-function toggleNotify(){document.getElementById("notifyPanel").style.display=notifyPanel.style.display==='block'?'none':'block';}
-function renderNotify(){const p=document.getElementById("notifyPanel");p.innerHTML="<strong>Notifications</strong><hr>"+(logs.length?logs.map(l=>`<div>• ${l}</div>`).join(""):"No notifications yet");}
-function enableNotify(){if(Notification.permission==='granted')return;Notification.requestPermission();}
-function dailyCheck(){if(Notification.permission!=='granted')return;const list=data[todayName]||[];if(list.length){const msg=`${list.length} anime airing today (${todayName})`;new Notification("Anime Reminder",{body:msg});logs.unshift(msg+" – "+new Date().toLocaleString());save();}}
-setInterval(dailyCheck,60*60*1000);
-if(localStorage.getItem("dark")==="true")document.body.classList.add("dark");render();
+function removeAnime(day,i){if(confirm('Remove this anime?')){data[day].splice(i,1);save();render();}}
+function addAnime(){const n=animeName.value.trim();if(!n)return;data[animeDay.value].push({name:n,ep:0,total:+animeTotal.value||null});animeName.value=animeTotal.value='';save();render();}
+
+function requestNotify(){
+ if(!('Notification'in window)){toast('Notifications not supported');return;}
+ Notification.requestPermission().then(p=>{
+  if(p==='granted')toast('Alerts enabled');
+  else toast('Permission denied');
+ });
+}
+
+function dailyNotify(){
+ if(Notification.permission!=='granted')return;
+ if(notified===today)return;
+ const list=data[today];
+ if(list&&list.length){
+  new Notification('Anime Reminder',{body:`${list.length} anime to watch today (${today})`});
+  localStorage.setItem('notifiedDay',today);
+ }
+}
+
+setInterval(dailyNotify,60000);
+dailyNotify();
+render();
 </script></body>
 </html>
