@@ -1,110 +1,483 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anime Weekly Tracker</title>
-<style>
-:root{--bg:#0b1220;--card:#111827;--soft:#1f2937;--text:#e5e7eb;--muted:#9ca3af;--accent:#22d3ee;--radius:14px}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:linear-gradient(180deg,#020617,#0b1220);color:var(--text)}
-header{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#020617;border-bottom:1px solid #1f2937}
-header .right button{margin-left:8px}
-button{border:none;border-radius:999px;padding:8px 14px;background:var(--accent);color:#020617;font-weight:600;cursor:pointer}
-button.icon{padding:8px 10px;background:#1f2937;color:#e5e7eb}
-.container{max-width:900px;margin:auto;padding:14px}
-.day{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px}
-.day.today{outline:1px solid var(--accent)}
-.day h3{margin:0 0 10px;font-size:15px;color:#e5e7eb}
-.anime{display:flex;justify-content:space-between;align-items:center;background:var(--soft);padding:10px 12px;border-radius:12px;margin:8px 0}
-.anime-name{font-size:14px}
-.controls{display:flex;gap:6px}
-.controls button{padding:6px 10px}
-.controls .del{background:#ef4444;color:#fff;margin-left:12px}
-.add-box, .search-box{background:var(--card);border-radius:var(--radius);padding:14px;margin-top:20px}
-input,select{width:100%;padding:10px;margin:6px 0 10px;border-radius:10px;border:none;background:var(--soft);color:var(--text)}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#020617;padding:10px 14px;border-radius:999px;display:none}
-.tabs{display:flex;gap:8px;margin-bottom:14px}
-.tab{padding:6px 12px;border-radius:12px;background:var(--soft);cursor:pointer}
-.tab.active{background:var(--accent);color:#020617}
-.alphabet-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(40px,1fr));gap:6px;margin-top:10px}
-.alphabet-list button{padding:6px;background:var(--soft);border-radius:10px;cursor:pointer;width:100%}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Tracker</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --accent-color: #bb86fc;
+            --highlight-color: #03dac6;
+            --border-color: #333;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        body.light {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --card-bg: #f5f5f5;
+            --accent-color: #6200ee;
+            --highlight-color: #018786;
+            --border-color: #ddd;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #search {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            margin-right: 10px;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        button:hover {
+            background: var(--highlight-color);
+            transform: scale(1.05);
+        }
+
+        button.small {
+            padding: 4px 8px;
+            font-size: 0.8em;
+        }
+
+        #tabs {
+            display: flex;
+            overflow-x: auto;
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid var(--accent-color);
+            font-weight: bold;
+        }
+
+        .tab.today {
+            color: var(--highlight-color);
+        }
+
+        #content {
+            padding: 10px;
+            flex: 1;
+        }
+
+        .anime-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .anime-name {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .episodes {
+            margin-right: 10px;
+        }
+
+        #modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        #modal-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            animation: scaleIn 0.3s;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        #logs-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        #logs-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+
+        #snackbar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-color);
+            color: var(--bg-color);
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: none;
+            z-index: 30;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { bottom: -50px; opacity: 0; }
+            to { bottom: 20px; opacity: 1; }
+        }
+
+        #import-file {
+            display: none;
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+    </style>
 </head>
-<body>
-<header>
- <strong>📅 Anime Weekly Tracker</strong>
- <div class="right">
-  <button class="icon" onclick="toggleNotifyPanel()">🔔</button>
-  <button onclick="requestNotify()">Enable Alerts</button>
- </div>
-</header><div class="container search-box">
- <input id="searchInput" placeholder="Search anime..." oninput="searchAnime()">
-</div><div class="tabs">
- <div class="tab active" onclick="switchTab('week')">Weekly</div>
- <div class="tab" onclick="switchTab('alpha')">Alphabetical</div>
-</div><div class="container" id="app"></div>
-<div class="container add-box">
- <h3>➕ Add New Anime</h3>
- <input id="animeName" placeholder="Anime name">
- <input id="animeTotal" type="number" placeholder="Total episodes (optional)">
- <select id="animeDay">
-  <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
-  <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
- </select>
- <button onclick="addAnime()">Add Anime</button>
-</div><div id="toast"></div><script>
-const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const today=days[new Date().getDay()];
-let data=JSON.parse(localStorage.getItem('animeData'))||{Monday:[],Tuesday:[],Wednesday:[],Thursday:[],Friday:[],Saturday:[],Sunday:[]};
-let undoStack=[];
-let currentTab='week';
+<body class="dark">
+    <header>
+        <input type="text" id="search" placeholder="Search anime...">
+        <button id="add-btn" class="small">➕</button>
+        <button id="bell-btn" class="small">🔔</button>
+        <button id="dark-toggle" class="small">🌙</button>
+        <button id="backup-btn" class="small">💾</button>
+        <button id="restore-btn" class="small">📥</button>
+    </header>
+    <div id="tabs">
+        <div class="tab" data-day="All">All</div>
+        <div class="tab" data-day="Monday">Mon</div>
+        <div class="tab" data-day="Tuesday">Tue</div>
+        <div class="tab" data-day="Wednesday">Wed</div>
+        <div class="tab" data-day="Thursday">Thu</div>
+        <div class="tab" data-day="Friday">Fri</div>
+        <div class="tab" data-day="Saturday">Sat</div>
+        <div class="tab" data-day="Sunday">Sun</div>
+    </div>
+    <div id="content"></div>
+    <div id="modal">
+        <div id="modal-content">
+            <h3>Add Anime</h3>
+            <input type="text" id="anime-name" placeholder="Anime Name">
+            <select id="release-day">
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+                <option value="Sunday">Sunday</option>
+            </select>
+            <button id="save-anime">Save</button>
+            <button id="close-modal">Cancel</button>
+        </div>
+    </div>
+    <div id="logs-modal">
+        <div id="logs-content">
+            <h3>Logs</h3>
+            <ul id="logs-list"></ul>
+            <button id="close-logs">Close</button>
+        </div>
+    </div>
+    <div id="snackbar">Anime deleted <button id="undo-delete">Undo</button></div>
+    <input type="file" id="import-file" accept=".json">
 
-function save(){localStorage.setItem('animeData',JSON.stringify(data));}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
+    <script>
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const today = new Date().toLocaleString('en-us', { weekday: 'long' });
+        let animeList = JSON.parse(localStorage.getItem('animeList')) || [];
+        let deletedAnime = null;
+        let logs = JSON.parse(localStorage.getItem('logs')) || [];
+        let notificationPermission = localStorage.getItem('notificationPermission') === 'granted';
 
-function render(){
- const app=document.getElementById('app');app.innerHTML='';
- if(currentTab==='week'){
-  Object.keys(data).forEach(day=>{
-   const d=document.createElement('div');d.className='day'+(day===today?' today':'');
-   d.innerHTML=`<h3>${day}${day===today?' • Today':''}</h3>`;
-   data[day].forEach((a,i)=>{
-    const r=document.createElement('div');r.className='anime';
-    r.innerHTML=`<div class='anime-name'>${a.name} • EP ${a.ep}${a.total?` / ${a.total}`:''}</div>
-    <div class='controls'>
-     <button onclick="updateEp('${day}',${i},-1)">−</button>
-     <button onclick="updateEp('${day}',${i},1)">+</button>
-     <button class='del' onclick="removeAnime('${day}',${i})">✕</button>
-    </div>`;
-    d.appendChild(r);
-   });
-   app.appendChild(d);
-  });
- } else {
-  // Alphabetical tab
-  let allAnime=[];
-  Object.keys(data).forEach(day=>allAnime.push(...data[day]));
-  allAnime.sort((a,b)=>a.name.localeCompare(b.name));
-  const letters=[...new Set(allAnime.map(a=>a.name[0].toUpperCase()))];
-  letters.forEach(l=>{
-   const div=document.createElement('div');div.innerHTML=`<h4>${l}</h4>`;
-   const list=document.createElement('div');list.className='alphabet-list';
-   allAnime.filter(a=>a.name[0].toUpperCase()===l).forEach((a,i)=>{
-    const btn=document.createElement('button');btn.textContent=a.name+' • EP '+a.ep;
-    btn.onclick=()=>{a.ep++;save();render();};
-    list.appendChild(btn);
-   });
-   div.appendChild(list);app.appendChild(div);
-  });
- }
-}
+        function saveData() {
+            localStorage.setItem('animeList', JSON.stringify(animeList));
+        }
 
-function updateEp(day,i,v){data[day][i].ep=Math.max(0,data[day][i].ep+v);save();render();}
-function removeAnime(day,i){undoStack.push({day,anime:data[day][i]});data[day].splice(i,1);save();render();toast('Anime removed. Undo?');}
-function undoDelete(){if(undoStack.length){const last=undoStack.pop();data[last.day].push(last.anime);save();render();toast('Undo successful');}}
-function addAnime(){const n=document.getElementById('animeName').value.trim();if(!n)return;data[document.getElementById('animeDay').value].push({name:n,ep:0,total:+document.getElementById('animeTotal').value||null});document.getElementById('animeName').value=document.getElementById('animeTotal').value='';save();render();}
-function searchAnime(){const s=document.getElementById('searchInput').value.toLowerCase();document.querySelectorAll('.anime').forEach(a=>{a.style.display=a.querySelector('.anime-name').textContent.toLowerCase().includes(s)?'flex':'none'});}
-function switchTab(tab){currentTab=tab;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');render();}
-render();
-</script></body>
+        function addLog(message) {
+            const timestamp = new Date().toLocaleString();
+            logs.push({ timestamp, message });
+            localStorage.setItem('logs', JSON.stringify(logs));
+        }
+
+        function renderTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+                tab.classList.remove('today');
+                if (tab.dataset.day === today) {
+                    tab.classList.add('today');
+                }
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    renderContent(tab.dataset.day);
+                });
+            });
+            document.querySelector('.tab[data-day="All"]').classList.add('active');
+            renderContent('All');
+        }
+
+        function renderContent(day) {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            let filteredAnime = animeList;
+            const search = document.getElementById('search').value.toLowerCase();
+            if (search) {
+                filteredAnime = filteredAnime.filter(a => a.name.toLowerCase().includes(search));
+            }
+            if (day !== 'All') {
+                filteredAnime = filteredAnime.filter(a => a.day === day);
+            } else {
+                filteredAnime = [...filteredAnime].sort((a, b) => a.name.localeCompare(b.name));
+            }
+            filteredAnime.forEach(anime => {
+                const card = document.createElement('div');
+                card.className = 'anime-card';
+                card.innerHTML = `
+                    <span class="anime-name">${anime.name}</span>
+                    <span class="episodes">${anime.episodes || 0}</span>
+                    <button class="small decrement">-</button>
+                    <button class="small increment">+</button>
+                    ${day === 'All' ? '' : '<button class="small delete">❌</button>'}
+                `;
+                card.querySelector('.increment').addEventListener('click', () => updateEpisodes(anime, 1));
+                card.querySelector('.decrement').addEventListener('click', () => updateEpisodes(anime, -1));
+                if (day !== 'All') {
+                    card.querySelector('.delete').addEventListener('click', () => deleteAnime(anime));
+                }
+                content.appendChild(card);
+            });
+        }
+
+        function updateEpisodes(anime, delta) {
+            anime.episodes = (anime.episodes || 0) + delta;
+            if (anime.episodes < 0) anime.episodes = 0;
+            saveData();
+            addLog(`Updated ${anime.name} episodes to ${anime.episodes}`);
+            renderContent(document.querySelector('.tab.active').dataset.day);
+        }
+
+        function deleteAnime(anime) {
+            deletedAnime = anime;
+            animeList = animeList.filter(a => a !== anime);
+            saveData();
+            renderContent(document.querySelector('.tab.active').dataset.day);
+            showSnackbar();
+            addLog(`Deleted ${anime.name}`);
+        }
+
+        function showSnackbar() {
+            const snackbar = document.getElementById('snackbar');
+            snackbar.style.display = 'block';
+            setTimeout(() => {
+                snackbar.style.display = 'none';
+                deletedAnime = null;
+            }, 5000);
+        }
+
+        document.getElementById('undo-delete').addEventListener('click', () => {
+            if (deletedAnime) {
+                animeList.push(deletedAnime);
+                saveData();
+                renderContent(document.querySelector('.tab.active').dataset.day);
+                document.getElementById('snackbar').style.display = 'none';
+                addLog(`Undid delete for ${deletedAnime.name}`);
+                deletedAnime = null;
+            }
+        });
+
+        document.getElementById('add-btn').addEventListener('click', () => {
+            document.getElementById('modal').style.display = 'flex';
+        });
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            document.getElementById('modal').style.display = 'none';
+        });
+
+        document.getElementById('save-anime').addEventListener('click', () => {
+            const name = document.getElementById('anime-name').value.trim();
+            const day = document.getElementById('release-day').value;
+            if (name) {
+                animeList.push({ name, day, episodes: 0 });
+                saveData();
+                addLog(`Added ${name} on ${day}`);
+                renderContent(document.querySelector('.tab.active').dataset.day);
+                document.getElementById('modal').style.display = 'none';
+            }
+        });
+
+        document.getElementById('search').addEventListener('input', () => {
+            renderContent(document.querySelector('.tab.active').dataset.day);
+        });
+
+        document.getElementById('dark-toggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            document.body.classList.toggle('light');
+        });
+
+        document.getElementById('backup-btn').addEventListener('click', () => {
+            const data = JSON.stringify(animeList);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'anime_backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            addLog('Backed up data');
+        });
+
+        document.getElementById('restore-btn').addEventListener('click', () => {
+            document.getElementById('import-file').click();
+        });
+
+        document.getElementById('import-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        animeList = JSON.parse(event.target.result);
+                        saveData();
+                        renderContent(document.querySelector('.tab.active').dataset.day);
+                        addLog('Restored data from backup');
+                    } catch (err) {
+                        alert('Invalid JSON file');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        document.getElementById('bell-btn').addEventListener('click', () => {
+            renderLogs();
+            document.getElementById('logs-modal').style.display = 'flex';
+        });
+
+        document.getElementById('close-logs').addEventListener('click', () => {
+            document.getElementById('logs-modal').style.display = 'none';
+        });
+
+        function renderLogs() {
+            const list = document.getElementById('logs-list');
+            list.innerHTML = '';
+            logs.forEach(log => {
+                const li = document.createElement('li');
+                li.textContent = `${log.timestamp}: ${log.message}`;
+                list.appendChild(li);
+            });
+        }
+
+        // Notifications
+        if (!notificationPermission) {
+            Notification.requestPermission().then(perm => {
+                notificationPermission = perm === 'granted';
+                localStorage.setItem('notificationPermission', perm);
+            });
+        }
+
+        function checkNotifications() {
+            if (notificationPermission) {
+                animeList.forEach(anime => {
+                    if (anime.day === today) {
+                        new Notification('Anime Release Day', {
+                            body: `${anime.name} releases today!`
+                        });
+                    }
+                });
+            }
+        }
+
+        // Note: Browser notifications only work when the site is open or in background. If browser is fully closed, no notifications can be sent as this is an offline site without server push.
+
+        window.addEventListener('load', () => {
+            renderTabs();
+            checkNotifications();
+        });
+    </script>
+</body>
 </html>
